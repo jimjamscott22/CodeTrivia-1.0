@@ -1,0 +1,241 @@
+.app {
+  text-align: center;
+  padding: 2rem;
+}
+
+.app-title {
+  font-size: 3.5rem;
+  font-weight: bold;
+  color: var(--primary-green);
+  text-shadow: 0 0 20px var(--shadow);
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+
+.app-subtitle {
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+  margin-bottom: 3rem;
+}
+
+.card {
+  background: var(--card-bg);
+  border: 2px solid var(--primary-green);
+  border-radius: 16px;
+  padding: 3rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 40px var(--shadow);
+  margin-bottom: 2rem;
+  animation: slideIn 0.5s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.setup-section {
+  margin-bottom: 2.5rem;
+}
+
+.setup-section h2 {
+  color: var(--primary-green);
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.category-btn {
+  padding: 1.2rem;
+  font-size: 1rem;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.category-btn.selected {
+  background-color: var(--primary-green);
+  color: var(--dark-bg);
+  box-shadow: 0 0 20px var(--shadow);
+}
+
+.difficulty-buttons,
+.question-count-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.difficulty-btn,
+.count-btn {
+  min-width: 120px;
+  padding: 1rem 2rem;
+}
+
+.difficulty-btn.selected,
+.count-btn.selected {
+  background-color: var(--primary-green);
+  color: var(--dark-bg);
+  box-shadow: 0 0 20px var(--shadow);
+}
+
+.start-button {
+  font-size: 1.5rem;
+  padding: 1.5rem 3rem;
+  margin-top: 2rem;
+  background: var(--primary-green);
+  color: var(--dark-bg);
+  box-shadow: 0 0 30px var(--shadow);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 30px var(--shadow);
+  }
+  50% {
+    box-shadow: 0 0 50px var(--shadow);
+  }
+}
+
+.quiz-question {
+  font-size: 1.8rem;
+  color: var(--text-primary);
+  margin-bottom: 3rem;
+  line-height: 1.4;
+}
+
+.quiz-progress {
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+}
+
+.quiz-progress span {
+  color: var(--primary-green);
+  font-weight: bold;
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.option-btn {
+  padding: 2rem;
+  font-size: 1.1rem;
+  text-align: left;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid var(--primary-green);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.option-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, transparent, var(--primary-green), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s;
+}
+
+.option-btn:hover::before {
+  transform: translateX(100%);
+}
+
+.option-btn:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 25px var(--shadow);
+}
+
+.option-btn.selected {
+  background: var(--primary-green);
+  color: var(--dark-bg);
+  border-color: var(--primary-green);
+}
+
+.option-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.results-card {
+  text-align: center;
+}
+
+.results-score {
+  font-size: 5rem;
+  color: var(--primary-green);
+  font-weight: bold;
+  margin: 2rem 0;
+  text-shadow: 0 0 30px var(--shadow);
+}
+
+.results-message {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+.results-details {
+  font-size: 1.3rem;
+  color: var(--text-secondary);
+  margin-bottom: 3rem;
+}
+
+.play-again-btn {
+  font-size: 1.5rem;
+  padding: 1.5rem 3rem;
+  background: var(--primary-green);
+  color: var(--dark-bg);
+}
+
+.loading {
+  text-align: center;
+  padding: 3rem;
+}
+
+.loading-spinner {
+  border: 4px solid rgba(0, 255, 136, 0.1);
+  border-top: 4px solid var(--primary-green);
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1.5rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+}
+
