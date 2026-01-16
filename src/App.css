@@ -103,6 +103,17 @@
   animation: pulse 2s infinite;
 }
 
+.error-message {
+  margin: 1.5rem auto 0;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 68, 68, 0.7);
+  background: rgba(255, 68, 68, 0.1);
+  color: #ffcccc;
+  font-size: 1rem;
+  max-width: 640px;
+}
+
 @keyframes pulse {
   0%, 100% {
     box-shadow: 0 0 30px var(--shadow);
@@ -181,6 +192,19 @@
 .option-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.secondary-button {
+  margin-left: 1rem;
+  border-color: rgba(255, 255, 255, 0.35);
+  color: var(--text-secondary);
+}
+
+.secondary-button:hover {
+  border-color: var(--text-primary);
+  color: var(--dark-bg);
+  background: var(--text-primary);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.25);
 }
 
 .results-card {

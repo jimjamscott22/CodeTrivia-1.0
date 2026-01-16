@@ -36,6 +36,15 @@ npm run build
 npm run preview
 ```
 
+### LLM Configuration (Optional)
+
+By default, the app calls a local LLM endpoint at `http://localhost:11434/v1/chat/completions` using the `llama3` model. You can override these with Vite environment variables:
+
+```bash
+VITE_LLM_API_URL=http://localhost:11434/v1/chat/completions
+VITE_LLM_MODEL=llama3
+```
+
 ## How to Play
 
 1. **Select Categories** - Choose one or more programming topics you want to be quizzed on
@@ -54,7 +63,7 @@ npm run preview
 
 ## Project Structure
 
-```
+```text
 src/
 ├── App.jsx          # Main application component
 ├── App.css          # Styling for the game

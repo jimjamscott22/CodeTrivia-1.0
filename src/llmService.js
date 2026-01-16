@@ -1,6 +1,9 @@
 // Mock LLM service for generating trivia questions
 // In a production environment, this would connect to a local LLM API
 
+const LLM_API_URL = import.meta.env.VITE_LLM_API_URL || 'http://localhost:11434/v1/chat/completions';
+const LLM_MODEL = import.meta.env.VITE_LLM_MODEL || 'llama3';
+
 const questionTemplates = {
   javascript: [
     {
@@ -146,6 +149,36 @@ function shuffleArray(array) {
   return newArray;
 }
 
+function normalizeQuestion(rawQuestion, categories) {
+  if (!rawQuestion || typeof rawQuestion !== 'object') return null;
+
+  const questionText = String(rawQuestion.q || '').trim();
+  const correct = String(rawQuestion.correct || '').trim();
+  if (!questionText || !correct) return null;
+
+  const category = categories.includes(rawQuestion.category)
+    ? rawQuestion.category
+    : categories[0];
+
+  const options = Array.isArray(rawQuestion.options)
+    ? rawQuestion.options.map(option => String(option).trim()).filter(Boolean)
+    : [];
+
+  if (!options.includes(correct)) {
+    options.unshift(correct);
+  }
+
+  const distinctOptions = Array.from(new Set(options));
+  if (distinctOptions.length < 4) return null;
+
+  return {
+    question: questionText,
+    options: distinctOptions.slice(0, 4),
+    correctAnswer: correct,
+    category
+  };
+}
+
 async function generateMockQuestions(categories, difficulty, count) {
   // Simulate API call delay
   await new Promise(resolve => setTimeout(resolve, 1500));
@@ -208,13 +241,21 @@ export async function generateQuestions(categories, difficulty, count) {
   const modelName = import.meta.env.VITE_LLM_MODEL || 'llama3';
 
   try {
+<<<<<<< HEAD
     const response = await fetch(apiUrl, {
+=======
+    const response = await fetch(LLM_API_URL, {
+>>>>>>> 2f8b5e77b270cc4843d2583d0a938324b7bfd681
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+<<<<<<< HEAD
         model: modelName,
+=======
+        model: LLM_MODEL,
+>>>>>>> 2f8b5e77b270cc4843d2583d0a938324b7bfd681
         messages: [
           { role: "system", content: "You are a helpful assistant that generates trivia questions in strictly valid JSON format." },
           { role: "user", content: prompt }
@@ -251,12 +292,20 @@ export async function generateQuestions(categories, difficulty, count) {
          }
     }
     
+    const normalized = parsedQuestions
+      .map(q => normalizeQuestion(q, categories))
+      .filter(Boolean);
+
+    if (normalized.length === 0) {
+      throw new Error('LLM returned no valid questions');
+    }
+
     // Validate and format
-    return parsedQuestions.map((q, index) => ({
+    return normalized.map((q, index) => ({
       id: index + 1,
-      question: q.q,
+      question: q.question,
       options: shuffleArray(q.options),
-      correctAnswer: q.correct,
+      correctAnswer: q.correctAnswer,
       category: q.category
     }));
 
