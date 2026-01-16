@@ -204,14 +204,17 @@ export async function generateQuestions(categories, difficulty, count) {
   
   Ensure the JSON is valid.`;
 
+  const apiUrl = import.meta.env.VITE_LLM_API_URL || '/api/llm/v1/chat/completions';
+  const modelName = import.meta.env.VITE_LLM_MODEL || 'llama3';
+
   try {
-    const response = await fetch('http://localhost:11434/v1/chat/completions', {
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "llama3", // Assuming user has llama3 or similar model
+        model: modelName,
         messages: [
           { role: "system", content: "You are a helpful assistant that generates trivia questions in strictly valid JSON format." },
           { role: "user", content: prompt }
