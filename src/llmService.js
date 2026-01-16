@@ -146,7 +146,7 @@ function shuffleArray(array) {
   return newArray;
 }
 
-export async function generateQuestions(categories, difficulty, count) {
+async function generateMockQuestions(categories, difficulty, count) {
   // Simulate API call delay
   await new Promise(resolve => setTimeout(resolve, 1500));
 
@@ -191,6 +191,76 @@ export async function generateQuestions(categories, difficulty, count) {
   }
 
   return questions;
+}
+
+
+export async function generateQuestions(categories, difficulty, count) {
+  const prompt = `Generate ${count} multiple-choice trivia questions about ${categories.join(', ')} at ${difficulty} difficulty level. 
+  Return a raw JSON array (no markdown code blocks) of objects with these keys:
+  - "q": Request question text
+  - "correct": The correct answer text
+  - "options": An array of 4 distinct options including the correct answer
+  - "category": The specific category ID from this list: ${categories.join(', ')}
+  
+  Ensure the JSON is valid.`;
+
+  try {
+    const response = await fetch('http://localhost:11434/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: "llama3", // Assuming user has llama3 or similar model
+        messages: [
+          { role: "system", content: "You are a helpful assistant that generates trivia questions in strictly valid JSON format." },
+          { role: "user", content: prompt }
+        ],
+        stream: false,
+        temperature: 0.7,
+        format: "json"
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`LLM API Error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    let content = data.choices[0].message.content;
+    
+    // Clean up if it's wrapped in markdown
+    content = content.replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    let parsedQuestions;
+    try {
+        parsedQuestions = JSON.parse(content);
+    } catch (e) {
+        console.error("Failed to parse LLM response JSON:", content);
+        throw e;
+    }
+
+    if (!Array.isArray(parsedQuestions)) {
+         if (parsedQuestions.questions && Array.isArray(parsedQuestions.questions)) {
+             parsedQuestions = parsedQuestions.questions;
+         } else {
+             throw new Error("LLM did not return an array of questions");
+         }
+    }
+    
+    // Validate and format
+    return parsedQuestions.map((q, index) => ({
+      id: index + 1,
+      question: q.q,
+      options: shuffleArray(q.options),
+      correctAnswer: q.correct,
+      category: q.category
+    }));
+
+  } catch (error) {
+    console.warn("Failed to fetch from LLM, falling back to mock data:", error);
+    return generateMockQuestions(categories, difficulty, count);
+  }
 }
 
 export const CATEGORIES = [
