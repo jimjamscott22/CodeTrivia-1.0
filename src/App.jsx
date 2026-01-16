@@ -11,6 +11,7 @@ function App() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [score, setScore] = useState(0);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const toggleCategory = (categoryId) => {
     setSelectedCategories(prev => 
@@ -22,10 +23,11 @@ function App() {
 
   const startGame = async () => {
     if (selectedCategories.length === 0) {
-      alert('Please select at least one category!');
+      setErrorMessage('Please select at least one category.');
       return;
     }
 
+    setErrorMessage('');
     setGameState('loading');
     try {
       const generatedQuestions = await generateQuestions(
@@ -40,7 +42,7 @@ function App() {
       setGameState('quiz');
     } catch (error) {
       console.error('Error generating questions:', error);
-      alert('Failed to generate questions. Please try again.');
+      setErrorMessage('Failed to generate questions. Please try again.');
       setGameState('setup');
     }
   };
@@ -75,6 +77,7 @@ function App() {
     setCurrentQuestionIndex(0);
     setSelectedAnswer(null);
     setScore(0);
+    setErrorMessage('');
   };
 
   const renderSetup = () => (
@@ -91,6 +94,7 @@ function App() {
                 key={cat.id}
                 className={`category-btn ${selectedCategories.includes(cat.id) ? 'selected' : ''}`}
                 onClick={() => toggleCategory(cat.id)}
+                aria-pressed={selectedCategories.includes(cat.id)}
               >
                 <div>{cat.emoji}</div>
                 <div>{cat.name}</div>
@@ -107,6 +111,7 @@ function App() {
                 key={diff}
                 className={`difficulty-btn ${difficulty === diff ? 'selected' : ''}`}
                 onClick={() => setDifficulty(diff)}
+                aria-pressed={difficulty === diff}
               >
                 {diff.toUpperCase()}
               </button>
@@ -122,12 +127,19 @@ function App() {
                 key={count}
                 className={`count-btn ${questionCount === count ? 'selected' : ''}`}
                 onClick={() => setQuestionCount(count)}
+                aria-pressed={questionCount === count}
               >
                 {count}
               </button>
             ))}
           </div>
         </div>
+
+        {errorMessage && (
+          <div className="error-message" role="alert" aria-live="polite">
+            {errorMessage}
+          </div>
+        )}
 
         <button className="start-button" onClick={startGame}>
           🎮 START GAME
@@ -140,7 +152,7 @@ function App() {
     <div className="app">
       <h1 className="app-title">⚡ CodeTrivia ⚡</h1>
       <div className="card">
-        <div className="loading">
+        <div className="loading" role="status" aria-live="polite">
           <div className="loading-spinner"></div>
           <p className="loading-text">Generating your questions...</p>
           <p className="loading-text" style={{ fontSize: '0.9rem', marginTop: '1rem' }}>
@@ -163,7 +175,7 @@ function App() {
         <h1 className="app-title">⚡ CodeTrivia ⚡</h1>
         
         <div className="card">
-          <div className="quiz-progress">
+          <div className="quiz-progress" aria-live="polite">
             Question <span>{currentQuestionIndex + 1}</span> of <span>{questions.length}</span>
             {' | '}
             Score: <span>{score}</span>
@@ -180,6 +192,7 @@ function App() {
                 className={`option-btn ${selectedAnswer === option ? 'selected' : ''}`}
                 onClick={() => selectAnswer(option)}
                 disabled={selectedAnswer !== null}
+                aria-pressed={selectedAnswer === option}
               >
                 {option}
               </button>
@@ -202,6 +215,9 @@ function App() {
               )}
               <button onClick={nextQuestion}>
                 {currentQuestionIndex < questions.length - 1 ? 'Next Question →' : 'See Results'}
+              </button>
+              <button className="secondary-button" onClick={resetGame}>
+                Restart Quiz
               </button>
             </div>
           )}
