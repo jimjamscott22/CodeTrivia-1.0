@@ -1,6 +1,43 @@
 // Mock LLM service for generating trivia questions
 // In a production environment, this would connect to a local LLM API
 
+// LLM Provider configurations
+export const LLM_PROVIDERS = [
+  {
+    id: 'ollama',
+    name: 'Ollama',
+    url: 'http://localhost:11434/v1/chat/completions',
+    models: [
+      { id: 'llama3.2', name: 'Llama 3.2' },
+      { id: 'llama3.1', name: 'Llama 3.1' },
+      { id: 'llama3', name: 'Llama 3' },
+      { id: 'qwen2.5', name: 'Qwen 2.5' },
+      { id: 'phi3', name: 'Phi 3' },
+      { id: 'mistral', name: 'Mistral' },
+      { id: 'gemma2', name: 'Gemma 2' }
+    ]
+  },
+  {
+    id: 'lmstudio',
+    name: 'LM Studio',
+    url: 'http://localhost:1234/v1/chat/completions',
+    models: [
+      { id: 'local-model', name: 'Local Model (Auto)' },
+      { id: 'llama-3.2-3b-instruct', name: 'Llama 3.2 3B Instruct' },
+      { id: 'llama-3.1-8b-instruct', name: 'Llama 3.1 8B Instruct' },
+      { id: 'qwen2.5-7b-instruct', name: 'Qwen 2.5 7B Instruct' },
+      { id: 'phi-3-mini-4k-instruct', name: 'Phi 3 Mini 4K Instruct' },
+      { id: 'mistral-7b-instruct', name: 'Mistral 7B Instruct' }
+    ]
+  },
+  {
+    id: 'mock',
+    name: 'Mock (No LLM)',
+    url: null,
+    models: [{ id: 'mock', name: 'Built-in Questions' }]
+  }
+];
+
 const LLM_API_URL = import.meta.env.VITE_LLM_API_URL || 'http://localhost:11434/v1/chat/completions';
 const LLM_MODEL = import.meta.env.VITE_LLM_MODEL || 'llama3';
 
@@ -140,6 +177,20 @@ const questionTemplates = {
   ]
 };
 
+const QUESTION_LIBRARY = Object.freeze(
+  Object.entries(questionTemplates).flatMap(([category, difficultySets]) => {
+    const set = difficultySets[0] || {};
+    return ['easy', 'medium', 'hard'].flatMap(difficulty => {
+      const questions = Array.isArray(set[difficulty]) ? set[difficulty] : [];
+      return questions.map(question => ({
+        ...question,
+        category,
+        difficulty
+      }));
+    });
+  })
+);
+
 function shuffleArray(array) {
   const newArray = [...array];
   for (let i = newArray.length - 1; i > 0; i--) {
@@ -147,6 +198,39 @@ function shuffleArray(array) {
     [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
   }
   return newArray;
+}
+
+function getQuestionKey(questionText) {
+  return String(questionText || '').trim().toLowerCase();
+}
+
+function dedupeByQuestionText(questions) {
+  const seen = new Set();
+  return questions.filter(question => {
+    const key = getQuestionKey(question.question);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function getLibraryQuestions(categories, difficulty, includeAllDifficulties = false) {
+  const filtered = QUESTION_LIBRARY.filter(question => {
+    if (!categories.includes(question.category)) return false;
+    if (includeAllDifficulties) return true;
+    return question.difficulty === difficulty;
+  });
+
+  return filtered
+    .map(question => {
+      const normalized = normalizeQuestion(question, categories);
+      if (!normalized) return null;
+      return {
+        ...normalized,
+        difficulty: question.difficulty
+      };
+    })
+    .filter(Boolean);
 }
 
 function normalizeQuestion(rawQuestion, categories) {
@@ -183,51 +267,43 @@ async function generateMockQuestions(categories, difficulty, count) {
   // Simulate API call delay
   await new Promise(resolve => setTimeout(resolve, 1500));
 
-  const questions = [];
-  const availableQuestions = [];
+  const primaryPool = dedupeByQuestionText(
+    getLibraryQuestions(categories, difficulty)
+  );
+  const primaryKeys = new Set(primaryPool.map(question => getQuestionKey(question.question)));
+  const extendedPool = dedupeByQuestionText(
+    getLibraryQuestions(categories, difficulty, true)
+  ).filter(question => !primaryKeys.has(getQuestionKey(question.question)));
 
-  // Gather all questions from selected categories and difficulty
-  categories.forEach(category => {
-    if (questionTemplates[category]) {
-      const categoryQuestions = questionTemplates[category][0][difficulty];
-      availableQuestions.push(...categoryQuestions.map(q => ({ ...q, category })));
-    }
-  });
+  const availableQuestions = [...primaryPool, ...extendedPool];
+  const selected = shuffleArray(availableQuestions).slice(0, Math.min(count, availableQuestions.length));
 
-  // Shuffle and select the requested number of questions
-  const shuffled = shuffleArray(availableQuestions);
-  const selected = shuffled.slice(0, Math.min(count, shuffled.length));
-
-  // Format questions with shuffled options
-  selected.forEach((q, index) => {
-    const shuffledOptions = shuffleArray(q.options);
-    questions.push({
-      id: index + 1,
-      question: q.q,
-      options: shuffledOptions,
-      correctAnswer: q.correct,
-      category: q.category
-    });
-  });
-
-  // If we don't have enough questions, repeat some
-  while (questions.length < count && availableQuestions.length > 0) {
-    const randomQ = availableQuestions[Math.floor(Math.random() * availableQuestions.length)];
-    const shuffledOptions = shuffleArray(randomQ.options);
-    questions.push({
-      id: questions.length + 1,
-      question: randomQ.q,
-      options: shuffledOptions,
-      correctAnswer: randomQ.correct,
-      category: randomQ.category
-    });
+  if (selected.length < count) {
+    console.warn(
+      `Only ${selected.length} unique questions available for ${difficulty}. Requested ${count}.`
+    );
   }
 
-  return questions;
+  return selected.map((question, index) => ({
+    id: index + 1,
+    question: question.question,
+    options: shuffleArray(question.options),
+    correctAnswer: question.correctAnswer,
+    category: question.category
+  }));
 }
 
 
-export async function generateQuestions(categories, difficulty, count) {
+export async function generateQuestions(categories, difficulty, count, provider = 'ollama', model = 'llama3') {
+  // If mock provider, skip LLM and use library directly
+  if (provider === 'mock') {
+    return generateMockQuestions(categories, difficulty, count);
+  }
+
+  const providerConfig = LLM_PROVIDERS.find(p => p.id === provider);
+  const apiUrl = providerConfig?.url || import.meta.env.VITE_LLM_API_URL || 'http://localhost:11434/v1/chat/completions';
+  const modelName = model || import.meta.env.VITE_LLM_MODEL || 'llama3';
+
   const prompt = `Generate ${count} multiple-choice trivia questions about ${categories.join(', ')} at ${difficulty} difficulty level. 
   Return a raw JSON array (no markdown code blocks) of objects with these keys:
   - "q": Request question text
@@ -237,25 +313,14 @@ export async function generateQuestions(categories, difficulty, count) {
   
   Ensure the JSON is valid.`;
 
-  const apiUrl = import.meta.env.VITE_LLM_API_URL || '/api/llm/v1/chat/completions';
-  const modelName = import.meta.env.VITE_LLM_MODEL || 'llama3';
-
   try {
-<<<<<<< HEAD
     const response = await fetch(apiUrl, {
-=======
-    const response = await fetch(LLM_API_URL, {
->>>>>>> 2f8b5e77b270cc4843d2583d0a938324b7bfd681
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-<<<<<<< HEAD
         model: modelName,
-=======
-        model: LLM_MODEL,
->>>>>>> 2f8b5e77b270cc4843d2583d0a938324b7bfd681
         messages: [
           { role: "system", content: "You are a helpful assistant that generates trivia questions in strictly valid JSON format." },
           { role: "user", content: prompt }
@@ -296,12 +361,42 @@ export async function generateQuestions(categories, difficulty, count) {
       .map(q => normalizeQuestion(q, categories))
       .filter(Boolean);
 
-    if (normalized.length === 0) {
+    const uniqueNormalized = dedupeByQuestionText(normalized);
+    if (uniqueNormalized.length === 0) {
       throw new Error('LLM returned no valid questions');
     }
 
+    const libraryQuestions = getLibraryQuestions(categories, difficulty);
+    const usedKeys = new Set(uniqueNormalized.map(q => getQuestionKey(q.question)));
+    const fallbackQuestions = libraryQuestions.filter(
+      q => !usedKeys.has(getQuestionKey(q.question))
+    );
+
+    const needed = Math.max(0, count - uniqueNormalized.length);
+    let fallback = shuffleArray(fallbackQuestions).slice(0, needed);
+
+    if (fallback.length < needed) {
+      const extraNeeded = needed - fallback.length;
+      const extendedQuestions = getLibraryQuestions(categories, difficulty, true).filter(
+        q => !usedKeys.has(getQuestionKey(q.question))
+      );
+      const fallbackKeys = new Set(fallback.map(q => getQuestionKey(q.question)));
+      const extraPool = extendedQuestions.filter(
+        q => !fallbackKeys.has(getQuestionKey(q.question))
+      );
+      fallback = [...fallback, ...shuffleArray(extraPool).slice(0, extraNeeded)];
+    }
+
+    const combined = shuffleArray([...uniqueNormalized, ...fallback]);
+
+    if (combined.length < count) {
+      console.warn(
+        `Only ${combined.length} unique questions available. Requested ${count}.`
+      );
+    }
+
     // Validate and format
-    return normalized.map((q, index) => ({
+    return combined.map((q, index) => ({
       id: index + 1,
       question: q.question,
       options: shuffleArray(q.options),

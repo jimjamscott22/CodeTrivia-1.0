@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import './App.css';
-import { generateQuestions, CATEGORIES, DIFFICULTIES, QUESTION_COUNTS } from './llmService';
+import { generateQuestions, CATEGORIES, DIFFICULTIES, QUESTION_COUNTS, LLM_PROVIDERS } from './llmService';
 
 function App() {
   const [gameState, setGameState] = useState('setup'); // setup, loading, quiz, results
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [difficulty, setDifficulty] = useState('medium');
   const [questionCount, setQuestionCount] = useState(10);
+  const [llmProvider, setLlmProvider] = useState('ollama');
+  const [llmModel, setLlmModel] = useState('llama3');
   const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
@@ -21,6 +23,15 @@ function App() {
     );
   };
 
+  const handleProviderChange = (providerId) => {
+    setLlmProvider(providerId);
+    // Set default model for the provider
+    const provider = LLM_PROVIDERS.find(p => p.id === providerId);
+    if (provider && provider.models.length > 0) {
+      setLlmModel(provider.models[0].id);
+    }
+  };
+
   const startGame = async () => {
     if (selectedCategories.length === 0) {
       setErrorMessage('Please select at least one category.');
@@ -33,7 +44,9 @@ function App() {
       const generatedQuestions = await generateQuestions(
         selectedCategories,
         difficulty,
-        questionCount
+        questionCount,
+        llmProvider,
+        llmModel
       );
       setQuestions(generatedQuestions);
       setCurrentQuestionIndex(0);
@@ -73,6 +86,8 @@ function App() {
     setSelectedCategories([]);
     setDifficulty('medium');
     setQuestionCount(10);
+    setLlmProvider('ollama');
+    setLlmModel('llama3');
     setQuestions([]);
     setCurrentQuestionIndex(0);
     setSelectedAnswer(null);
@@ -130,6 +145,39 @@ function App() {
                 aria-pressed={questionCount === count}
               >
                 {count}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="setup-section">
+          <h2>🤖 LLM Provider</h2>
+          <div className="difficulty-buttons">
+            {LLM_PROVIDERS.map(provider => (
+              <button
+                key={provider.id}
+                className={`difficulty-btn ${llmProvider === provider.id ? 'selected' : ''}`}
+                onClick={() => handleProviderChange(provider.id)}
+                aria-pressed={llmProvider === provider.id}
+              >
+                {provider.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="setup-section">
+          <h2>🧠 Model</h2>
+          <div className="question-count-buttons">
+            {LLM_PROVIDERS.find(p => p.id === llmProvider)?.models.map(model => (
+              <button
+                key={model.id}
+                className={`count-btn ${llmModel === model.id ? 'selected' : ''}`}
+                onClick={() => setLlmModel(model.id)}
+                aria-pressed={llmModel === model.id}
+                style={{ fontSize: '0.85rem', padding: '0.6rem 1rem' }}
+              >
+                {model.name}
               </button>
             ))}
           </div>
