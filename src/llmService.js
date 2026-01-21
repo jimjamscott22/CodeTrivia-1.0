@@ -423,3 +423,62 @@ export const CATEGORIES = [
 export const DIFFICULTIES = ['easy', 'medium', 'hard'];
 
 export const QUESTION_COUNTS = [5, 10, 15, 20];
+
+// Fetch available models from LM Studio
+export async function fetchLMStudioModels() {
+  try {
+    const response = await fetch('http://localhost:1234/v1/models', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch models from LM Studio');
+    }
+
+    const data = await response.json();
+    
+    // LM Studio returns models in format: { data: [{ id: "model-name", ... }] }
+    if (data.data && Array.isArray(data.data)) {
+      return data.data.map(model => ({
+        id: model.id,
+        name: model.id.split('/').pop() || model.id // Use just the model name without path
+      }));
+    }
+    
+    return [];
+  } catch (error) {
+    console.warn('Failed to fetch LM Studio models:', error);
+    return [];
+  }
+}
+
+// Fetch available models from Ollama
+export async function fetchOllamaModels() {
+  try {
+    const response = await fetch('http://localhost:11434/api/tags', {
+      method: 'GET',
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch models from Ollama');
+    }
+
+    const data = await response.json();
+    
+    // Ollama returns models in format: { models: [{ name: "model-name", ... }] }
+    if (data.models && Array.isArray(data.models)) {
+      return data.models.map(model => ({
+        id: model.name,
+        name: model.name
+      }));
+    }
+    
+    return [];
+  } catch (error) {
+    console.warn('Failed to fetch Ollama models:', error);
+    return [];
+  }
+}

@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './App.css';
-import { generateQuestions, CATEGORIES, DIFFICULTIES, QUESTION_COUNTS, LLM_PROVIDERS } from './llmService';
+import { generateQuestions, CATEGORIES, DIFFICULTIES, QUESTION_COUNTS, LLM_PROVIDERS, fetchLMStudioModels, fetchOllamaModels } from './llmService';
 
 function App() {
   const [gameState, setGameState] = useState('setup'); // setup, loading, quiz, results
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [difficulty, setDifficulty] = useState('medium');
   const [questionCount, setQuestionCount] = useState(10);
-  const [llmProvider, setLlmProvider] = useState('ollama');
-  const [llmModel, setLlmModel] = useState('llama3');
+  const [llmProvider, setLlmProvider] = useState('lmstudio');
+  const [llmModel, setLlmModel] = useState('local-model');
+  const [availableModels, setAvailableModels] = useState([]);
+  const [loadingModels, setLoadingModels] = useState(false);
   const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
@@ -23,14 +25,55 @@ function App() {
     );
   };
 
-  const handleProviderChange = (providerId) => {
-    setLlmProvider(providerId);
-    // Set default model for the provider
-    const provider = LLM_PROVIDERS.find(p => p.id === providerId);
-    if (provider && provider.models.length > 0) {
-      setLlmModel(provider.models[0].id);
+  const fetchAvailableModels = async (providerId) => {
+    setLoadingModels(true);
+    try {
+      let models = [];
+      
+      if (providerId === 'lmstudio') {
+        models = await fetchLMStudioModels();
+      } else if (providerId === 'ollama') {
+        models = await fetchOllamaModels();
+      } else if (providerId === 'mock') {
+        // For mock provider, use the default mock model
+        models = [{ id: 'mock', name: 'Built-in Questions' }];
+      }
+      
+      setAvailableModels(models);
+      
+      // Set default model
+      if (models.length > 0) {
+        setLlmModel(models[0].id);
+      } else {
+        // Fallback to provider defaults if no models found
+        const provider = LLM_PROVIDERS.find(p => p.id === providerId);
+        if (provider && provider.models.length > 0) {
+          setLlmModel(provider.models[0].id);
+          setAvailableModels(provider.models);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching models:', error);
+      // Fallback to provider defaults
+      const provider = LLM_PROVIDERS.find(p => p.id === providerId);
+      if (provider && provider.models.length > 0) {
+        setLlmModel(provider.models[0].id);
+        setAvailableModels(provider.models);
+      }
+    } finally {
+      setLoadingModels(false);
     }
   };
+
+  const handleProviderChange = (providerId) => {
+    setLlmProvider(providerId);
+    fetchAvailableModels(providerId);
+  };
+
+  // Fetch models on initial load
+  useEffect(() => {
+    fetchAvailableModels(llmProvider);
+  }, []);
 
   const startGame = async () => {
     if (selectedCategories.length === 0) {
@@ -86,13 +129,12 @@ function App() {
     setSelectedCategories([]);
     setDifficulty('medium');
     setQuestionCount(10);
-    setLlmProvider('ollama');
-    setLlmModel('llama3');
     setQuestions([]);
     setCurrentQuestionIndex(0);
     setSelectedAnswer(null);
     setScore(0);
     setErrorMessage('');
+    // Don't reset provider/model - keep current selection
   };
 
   const renderSetup = () => (
@@ -168,19 +210,39 @@ function App() {
 
         <div className="setup-section">
           <h2>🧠 Model</h2>
-          <div className="question-count-buttons">
-            {LLM_PROVIDERS.find(p => p.id === llmProvider)?.models.map(model => (
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <select
+              className="model-dropdown"
+              value={llmModel}
+              onChange={(e) => setLlmModel(e.target.value)}
+              disabled={loadingModels || llmProvider === 'mock'}
+            >
+              {availableModels.length > 0 ? (
+                availableModels.map(model => (
+                  <option key={model.id} value={model.id}>
+                    {model.name}
+                  </option>
+                ))
+              ) : (
+                <option value="">No models available</option>
+              )}
+            </select>
+            {llmProvider !== 'mock' && (
               <button
-                key={model.id}
-                className={`count-btn ${llmModel === model.id ? 'selected' : ''}`}
-                onClick={() => setLlmModel(model.id)}
-                aria-pressed={llmModel === model.id}
-                style={{ fontSize: '0.85rem', padding: '0.6rem 1rem' }}
+                className="refresh-btn"
+                onClick={() => fetchAvailableModels(llmProvider)}
+                disabled={loadingModels}
+                title="Refresh available models"
               >
-                {model.name}
+                {loadingModels ? '⟳' : '🔄'}
               </button>
-            ))}
+            )}
           </div>
+          {llmProvider !== 'mock' && availableModels.length === 0 && !loadingModels && (
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+              No models detected. Make sure {llmProvider === 'lmstudio' ? 'LM Studio' : 'Ollama'} is running with a model loaded.
+            </p>
+          )}
         </div>
 
         {errorMessage && (
