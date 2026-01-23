@@ -1,0 +1,233 @@
+.stats-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.stats-modal {
+  background: var(--bg-dark);
+  border: 2px solid var(--primary-green);
+  border-radius: 8px;
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
+}
+
+.stats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--primary-green);
+}
+
+.stats-header h2 {
+  margin: 0;
+  color: var(--primary-green);
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  color: var(--primary-green);
+}
+
+.stats-content {
+  padding: 1.5rem;
+}
+
+.stats-section {
+  margin-bottom: 2rem;
+}
+
+.stats-section h3 {
+  color: var(--primary-green);
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.stat-card {
+  background: rgba(0, 255, 0, 0.05);
+  border: 1px solid var(--primary-green);
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.stat-card.highlight {
+  background: rgba(0, 255, 0, 0.1);
+  border-width: 2px;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--primary-green);
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.category-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--primary-green);
+}
+
+.category-item.weak {
+  background: rgba(255, 100, 100, 0.1);
+  border-color: #ff6464;
+}
+
+.category-item.strong {
+  background: rgba(0, 255, 0, 0.1);
+  border-color: var(--primary-green);
+}
+
+.category-name {
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.category-stats {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.accuracy {
+  font-weight: bold;
+  color: var(--primary-green);
+}
+
+.count {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.category-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.category-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 80px;
+  gap: 1rem;
+  align-items: center;
+}
+
+.category-bar-container {
+  background: rgba(0, 255, 0, 0.1);
+  height: 24px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.category-bar {
+  background: linear-gradient(90deg, var(--primary-green), #00ff00);
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.category-accuracy {
+  text-align: right;
+  font-weight: bold;
+  color: var(--primary-green);
+}
+
+.recent-sessions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.session-item {
+  display: grid;
+  grid-template-columns: 100px 80px 80px 1fr;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: rgba(0, 255, 0, 0.05);
+  border-radius: 4px;
+  align-items: center;
+}
+
+.session-difficulty {
+  text-transform: capitalize;
+  font-weight: 500;
+}
+
+.session-score {
+  color: var(--text-secondary);
+}
+
+.session-percentage {
+  font-weight: bold;
+  color: var(--primary-green);
+}
+
+.session-date {
+  text-align: right;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.stats-footer {
+  padding: 1.5rem;
+  border-top: 1px solid var(--primary-green);
+  text-align: center;
+}
+
+.stats-footer button {
+  padding: 0.75rem 2rem;
+  background: var(--primary-green);
+  color: var(--bg-dark);
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.stats-footer button:hover {
+  background: #00ff00;
+  transform: scale(1.05);
+}

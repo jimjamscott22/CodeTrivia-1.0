@@ -6,10 +6,19 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api/llm': {
+      '/api/lmstudio': {
+        target: 'http://localhost:1234',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/lmstudio/, ''),
+      },
+      '/api/ollama': {
         target: 'http://localhost:11434',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/llm/, ''),
+        rewrite: (path) => path.replace(/^\/api\/ollama/, ''),
+      },
+      '/api/performance': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
       },
     },
   },

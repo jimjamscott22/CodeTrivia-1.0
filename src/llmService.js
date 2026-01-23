@@ -6,7 +6,7 @@ export const LLM_PROVIDERS = [
   {
     id: 'ollama',
     name: 'Ollama',
-    url: 'http://localhost:11434/v1/chat/completions',
+    url: '/api/ollama/v1/chat/completions',
     models: [
       { id: 'llama3.2', name: 'Llama 3.2' },
       { id: 'llama3.1', name: 'Llama 3.1' },
@@ -20,7 +20,7 @@ export const LLM_PROVIDERS = [
   {
     id: 'lmstudio',
     name: 'LM Studio',
-    url: 'http://localhost:1234/v1/chat/completions',
+    url: '/api/lmstudio/v1/chat/completions',
     models: [
       { id: 'local-model', name: 'Local Model (Auto)' },
       { id: 'llama-3.2-3b-instruct', name: 'Llama 3.2 3B Instruct' },
@@ -38,7 +38,7 @@ export const LLM_PROVIDERS = [
   }
 ];
 
-const LLM_API_URL = import.meta.env.VITE_LLM_API_URL || 'http://localhost:11434/v1/chat/completions';
+const LLM_API_URL = import.meta.env.VITE_LLM_API_URL || '/api/ollama/v1/chat/completions';
 const LLM_MODEL = import.meta.env.VITE_LLM_MODEL || 'llama3';
 
 const questionTemplates = {
@@ -294,24 +294,52 @@ async function generateMockQuestions(categories, difficulty, count) {
 }
 
 
-export async function generateQuestions(categories, difficulty, count, provider = 'ollama', model = 'llama3') {
+export async function generateQuestions(categories, difficulty, count, provider = 'ollama', model = 'llama3', usePersonalization = true) {
   // If mock provider, skip LLM and use library directly
   if (provider === 'mock') {
     return generateMockQuestions(categories, difficulty, count);
   }
 
   const providerConfig = LLM_PROVIDERS.find(p => p.id === provider);
-  const apiUrl = providerConfig?.url || import.meta.env.VITE_LLM_API_URL || 'http://localhost:11434/v1/chat/completions';
+  const apiUrl = providerConfig?.url || import.meta.env.VITE_LLM_API_URL || '/api/ollama/v1/chat/completions';
   const modelName = model || import.meta.env.VITE_LLM_MODEL || 'llama3';
 
-  const prompt = `Generate ${count} multiple-choice trivia questions about ${categories.join(', ')} at ${difficulty} difficulty level. 
-  Return a raw JSON array (no markdown code blocks) of objects with these keys:
-  - "q": Request question text
-  - "correct": The correct answer text
-  - "options": An array of 4 distinct options including the correct answer
-  - "category": The specific category ID from this list: ${categories.join(', ')}
-  
-  Ensure the JSON is valid.`;
+  // Fetch personalization context if enabled
+  let personalizationContext = '';
+  if (usePersonalization) {
+    try {
+      const { getPersonalizationContext } = await import('./performanceService.js');
+      const context = await getPersonalizationContext();
+      if (context) {
+        personalizationContext = context;
+      }
+    } catch (error) {
+      console.warn('Could not fetch personalization context:', error);
+      // Continue without personalization
+    }
+  }
+
+  const prompt = `Generate ${count} multiple-choice trivia questions about ${categories.join(', ')} at ${difficulty} difficulty level.${personalizationContext}
+
+IMPORTANT: Return ONLY a valid JSON array with no extra text before or after. No markdown code blocks, no explanations.
+
+Each question must be a JSON object with these exact keys:
+- "q": The question text (string)
+- "correct": The correct answer text (string) - must match one of the options exactly
+- "options": An array of exactly 4 distinct answer options (strings) - one must be the correct answer
+- "category": One of these categories: ${categories.join(', ')}
+
+Example format:
+[
+  {
+    "q": "What keyword is used to declare a variable in JavaScript?",
+    "correct": "let",
+    "options": ["let", "int", "variable", "declare"],
+    "category": "javascript"
+  }
+]
+
+Do NOT include letter prefixes like "A)", "B)" in the answers. Return only plain text answers.`;
 
   try {
     const response = await fetch(apiUrl, {
@@ -337,10 +365,24 @@ export async function generateQuestions(categories, difficulty, count, provider 
 
     const data = await response.json();
     let content = data.choices[0].message.content;
-    
-    // Clean up if it's wrapped in markdown
+
+    // Clean up if it's wrapped in markdown code blocks
     content = content.replace(/```json/g, '').replace(/```/g, '').trim();
-    
+
+    // Remove thinking tags (e.g., <think>...</think>) that some models output
+    content = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+
+    // Extract JSON if there's text before/after it
+    // Look for array [...] or object {...}
+    const jsonArrayMatch = content.match(/\[[\s\S]*\]/);
+    const jsonObjectMatch = content.match(/\{[\s\S]*\}/);
+
+    if (jsonArrayMatch) {
+      content = jsonArrayMatch[0];
+    } else if (jsonObjectMatch) {
+      content = jsonObjectMatch[0];
+    }
+
     let parsedQuestions;
     try {
         parsedQuestions = JSON.parse(content);
@@ -356,13 +398,20 @@ export async function generateQuestions(categories, difficulty, count, provider 
              throw new Error("LLM did not return an array of questions");
          }
     }
-    
+
+    console.log('Parsed questions from LLM:', parsedQuestions);
+
     const normalized = parsedQuestions
       .map(q => normalizeQuestion(q, categories))
       .filter(Boolean);
 
+    console.log('Normalized questions:', normalized);
+
     const uniqueNormalized = dedupeByQuestionText(normalized);
+    console.log('Unique normalized questions:', uniqueNormalized);
+
     if (uniqueNormalized.length === 0) {
+      console.error('All questions were filtered out during normalization');
       throw new Error('LLM returned no valid questions');
     }
 
@@ -427,7 +476,7 @@ export const QUESTION_COUNTS = [5, 10, 15, 20];
 // Fetch available models from LM Studio
 export async function fetchLMStudioModels() {
   try {
-    const response = await fetch('http://localhost:1234/v1/models', {
+    const response = await fetch('/api/lmstudio/v1/models', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -435,22 +484,27 @@ export async function fetchLMStudioModels() {
     });
 
     if (!response.ok) {
+      console.error('LM Studio API returned error:', response.status, response.statusText);
       throw new Error('Failed to fetch models from LM Studio');
     }
 
     const data = await response.json();
-    
+    console.log('LM Studio API response:', data);
+
     // LM Studio returns models in format: { data: [{ id: "model-name", ... }] }
     if (data.data && Array.isArray(data.data)) {
-      return data.data.map(model => ({
+      const models = data.data.map(model => ({
         id: model.id,
         name: model.id.split('/').pop() || model.id // Use just the model name without path
       }));
+      console.log('Parsed LM Studio models:', models);
+      return models;
     }
-    
+
+    console.warn('LM Studio returned unexpected format:', data);
     return [];
   } catch (error) {
-    console.warn('Failed to fetch LM Studio models:', error);
+    console.error('Failed to fetch LM Studio models:', error);
     return [];
   }
 }
@@ -458,7 +512,7 @@ export async function fetchLMStudioModels() {
 // Fetch available models from Ollama
 export async function fetchOllamaModels() {
   try {
-    const response = await fetch('http://localhost:11434/api/tags', {
+    const response = await fetch('/api/ollama/api/tags', {
       method: 'GET',
     });
 
@@ -467,7 +521,7 @@ export async function fetchOllamaModels() {
     }
 
     const data = await response.json();
-    
+
     // Ollama returns models in format: { models: [{ name: "model-name", ... }] }
     if (data.models && Array.isArray(data.models)) {
       return data.models.map(model => ({
@@ -475,7 +529,7 @@ export async function fetchOllamaModels() {
         name: model.name
       }));
     }
-    
+
     return [];
   } catch (error) {
     console.warn('Failed to fetch Ollama models:', error);

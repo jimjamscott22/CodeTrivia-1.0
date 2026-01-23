@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import './App.css';
 import { generateQuestions, CATEGORIES, DIFFICULTIES, QUESTION_COUNTS, LLM_PROVIDERS, fetchLMStudioModels, fetchOllamaModels } from './llmService';
+import { saveQuizSession } from './performanceService';
+import Stats from './Stats';
 
 function App() {
   const [gameState, setGameState] = useState('setup'); // setup, loading, quiz, results
@@ -16,6 +18,8 @@ function App() {
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [score, setScore] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
+  const [userAnswers, setUserAnswers] = useState([]); // Track all user answers for performance tracking
+  const [showStats, setShowStats] = useState(false); // Show performance statistics modal
 
   const toggleCategory = (categoryId) => {
     setSelectedCategories(prev => 
@@ -29,7 +33,7 @@ function App() {
     setLoadingModels(true);
     try {
       let models = [];
-      
+
       if (providerId === 'lmstudio') {
         models = await fetchLMStudioModels();
       } else if (providerId === 'ollama') {
@@ -38,28 +42,21 @@ function App() {
         // For mock provider, use the default mock model
         models = [{ id: 'mock', name: 'Built-in Questions' }];
       }
-      
+
       setAvailableModels(models);
-      
+
       // Set default model
       if (models.length > 0) {
         setLlmModel(models[0].id);
       } else {
-        // Fallback to provider defaults if no models found
-        const provider = LLM_PROVIDERS.find(p => p.id === providerId);
-        if (provider && provider.models.length > 0) {
-          setLlmModel(provider.models[0].id);
-          setAvailableModels(provider.models);
-        }
+        // No models found - clear selection
+        setLlmModel('');
       }
     } catch (error) {
       console.error('Error fetching models:', error);
-      // Fallback to provider defaults
-      const provider = LLM_PROVIDERS.find(p => p.id === providerId);
-      if (provider && provider.models.length > 0) {
-        setLlmModel(provider.models[0].id);
-        setAvailableModels(provider.models);
-      }
+      // On error, show no models
+      setAvailableModels([]);
+      setLlmModel('');
     } finally {
       setLoadingModels(false);
     }
@@ -105,22 +102,51 @@ function App() {
 
   const selectAnswer = (answer) => {
     if (selectedAnswer !== null) return; // Already answered
-    
+
     setSelectedAnswer(answer);
     const currentQuestion = questions[currentQuestionIndex];
     const isCorrect = answer === currentQuestion.correctAnswer;
-    
+
+    // Track the answer for performance analytics
+    setUserAnswers(prev => [...prev, {
+      question: currentQuestion.question,
+      category: currentQuestion.category,
+      correctAnswer: currentQuestion.correctAnswer,
+      userAnswer: answer,
+      isCorrect: isCorrect
+    }]);
+
     if (isCorrect) {
       setScore(prev => prev + 1);
     }
   };
 
-  const nextQuestion = () => {
+  const nextQuestion = async () => {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
       setSelectedAnswer(null);
     } else {
+      // Quiz completed - save results to backend
+      await saveSessionResults();
       setGameState('results');
+    }
+  };
+
+  const saveSessionResults = async () => {
+    try {
+      await saveQuizSession({
+        difficulty,
+        questionCount,
+        score,
+        totalQuestions: questions.length,
+        llmProvider,
+        llmModel,
+        questions: userAnswers
+      });
+      console.log('Quiz results saved successfully');
+    } catch (error) {
+      console.error('Failed to save quiz results:', error);
+      // Don't block the user - just log the error
     }
   };
 
@@ -133,15 +159,27 @@ function App() {
     setCurrentQuestionIndex(0);
     setSelectedAnswer(null);
     setScore(0);
+    setUserAnswers([]);
     setErrorMessage('');
     // Don't reset provider/model - keep current selection
   };
 
   const renderSetup = () => (
     <div className="app">
-      <h1 className="app-title">⚡ CodeTrivia ⚡</h1>
-      <p className="app-subtitle">Test Your Programming Knowledge</p>
-      
+      <div className="app-header">
+        <div>
+          <h1 className="app-title">⚡ CodeTrivia ⚡</h1>
+          <p className="app-subtitle">Test Your Programming Knowledge</p>
+        </div>
+        <button
+          className="stats-button"
+          onClick={() => setShowStats(true)}
+          title="View your performance statistics"
+        >
+          📊 My Stats
+        </button>
+      </div>
+
       <div className="card">
         <div className="setup-section">
           <h2>📚 Select Categories</h2>
@@ -379,6 +417,7 @@ function App() {
       {gameState === 'loading' && renderLoading()}
       {gameState === 'quiz' && renderQuiz()}
       {gameState === 'results' && renderResults()}
+      {showStats && <Stats onClose={() => setShowStats(false)} />}
     </>
   );
 }
