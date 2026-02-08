@@ -378,7 +378,6 @@ const questionTemplates = {
       // SQL Hard Questions
       hard: [
         { q: "What is a database index?", correct: "A data structure that improves query speed", options: ["A data structure that improves query speed", "A list of tables", "A way to organize databases", "A type of JOIN"] },
-        { q: "What is the difference between UNION and UNION ALL?", correct: "UNION removes duplicates, UNION ALL keeps all rows", options: ["UNION removes duplicates, UNION ALL keeps all rows", "They are the same", "UNION ALL is deprecated", "UNION is faster"] },
         { q: "What is a database transaction?", correct: "A sequence of operations performed as a single unit", options: ["A sequence of operations performed as a single unit", "A money transfer", "A type of query", "A database backup"] },
         { q: "What is query optimization?", correct: "Process of improving query performance", options: ["Process of improving query performance", "Writing better queries", "A deprecated practice", "A type of index"] },
         { q: "What is a clustered index?", correct: "An index that determines physical order of data", options: ["An index that determines physical order of data", "An index on multiple servers", "A grouped index", "A deprecated index"] },
