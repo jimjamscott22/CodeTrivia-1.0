@@ -260,6 +260,54 @@
   margin-bottom: 3rem;
 }
 
+.save-results-panel {
+  margin: 0 auto 2rem;
+  padding: 1.25rem;
+  border: 1px solid rgba(0, 255, 0, 0.35);
+  border-radius: 12px;
+  background: rgba(0, 255, 0, 0.04);
+  max-width: 560px;
+}
+
+.save-results-title {
+  margin: 0 0 0.9rem;
+  color: var(--text-primary);
+  font-size: 1.05rem;
+}
+
+.save-results-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.save-results-btn {
+  background: rgba(0, 255, 0, 0.16);
+  color: var(--primary-green);
+  border: 2px solid var(--primary-green);
+}
+
+.save-results-btn:hover {
+  background: var(--primary-green);
+  color: var(--dark-bg);
+  box-shadow: 0 0 20px var(--shadow);
+}
+
+.save-results-status {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.save-results-status.success {
+  color: var(--primary-green);
+}
+
+.save-results-status.error {
+  color: #ff9b9b;
+  margin-bottom: 0.8rem;
+}
+
 .play-again-btn {
   font-size: 1.5rem;
   padding: 1.5rem 3rem;

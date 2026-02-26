@@ -20,6 +20,8 @@ function App() {
   const [errorMessage, setErrorMessage] = useState('');
   const [userAnswers, setUserAnswers] = useState([]); // Track all user answers for performance tracking
   const [showStats, setShowStats] = useState(false); // Show performance statistics modal
+  const [saveDecision, setSaveDecision] = useState('pending'); // pending, saving, saved, skipped, error
+  const [saveErrorMessage, setSaveErrorMessage] = useState('');
 
   const toggleCategory = (categoryId) => {
     setSelectedCategories(prev => 
@@ -92,6 +94,9 @@ function App() {
       setCurrentQuestionIndex(0);
       setScore(0);
       setSelectedAnswer(null);
+      setUserAnswers([]);
+      setSaveDecision('pending');
+      setSaveErrorMessage('');
       setGameState('quiz');
     } catch (error) {
       console.error('Error generating questions:', error);
@@ -126,15 +131,19 @@ function App() {
       setCurrentQuestionIndex(prev => prev + 1);
       setSelectedAnswer(null);
     } else {
-      // Quiz completed - save results to backend
-      await saveSessionResults();
+      // Quiz completed - user chooses whether to save results on the results screen
       setGameState('results');
     }
   };
 
   const saveSessionResults = async () => {
+    if (saveDecision === 'saved' || saveDecision === 'saving') return;
+
     try {
-      await saveQuizSession({
+      setSaveDecision('saving');
+      setSaveErrorMessage('');
+
+      const result = await saveQuizSession({
         difficulty,
         questionCount,
         score,
@@ -143,11 +152,24 @@ function App() {
         llmModel,
         questions: userAnswers
       });
+
+      if (!result?.success) {
+        throw new Error(result?.error || 'Unknown error while saving quiz results');
+      }
+
+      setSaveDecision('saved');
       console.log('Quiz results saved successfully');
     } catch (error) {
       console.error('Failed to save quiz results:', error);
-      // Don't block the user - just log the error
+      setSaveDecision('error');
+      setSaveErrorMessage(error.message || 'Failed to save quiz results.');
     }
+  };
+
+  const skipSavingResults = () => {
+    if (saveDecision === 'saved' || saveDecision === 'saving') return;
+    setSaveDecision('skipped');
+    setSaveErrorMessage('');
   };
 
   const resetGame = () => {
@@ -161,6 +183,8 @@ function App() {
     setScore(0);
     setUserAnswers([]);
     setErrorMessage('');
+    setSaveDecision('pending');
+    setSaveErrorMessage('');
     // Don't reset provider/model - keep current selection
   };
 
@@ -401,6 +425,49 @@ function App() {
           </div>
           <div className="results-details">
             You got {percentage}% correct!
+          </div>
+
+          <div className="save-results-panel">
+            <p className="save-results-title">Save this quiz to your statistics?</p>
+
+            {saveDecision === 'pending' && (
+              <div className="save-results-actions">
+                <button className="save-results-btn" onClick={saveSessionResults}>
+                  💾 Save Results
+                </button>
+                <button className="secondary-button" onClick={skipSavingResults}>
+                  Skip Saving
+                </button>
+              </div>
+            )}
+
+            {saveDecision === 'saving' && (
+              <p className="save-results-status">Saving results...</p>
+            )}
+
+            {saveDecision === 'saved' && (
+              <p className="save-results-status success">Saved to your statistics.</p>
+            )}
+
+            {saveDecision === 'skipped' && (
+              <p className="save-results-status">This quiz was not saved.</p>
+            )}
+
+            {saveDecision === 'error' && (
+              <div>
+                <p className="save-results-status error">
+                  Could not save this quiz. {saveErrorMessage}
+                </p>
+                <div className="save-results-actions">
+                  <button className="save-results-btn" onClick={saveSessionResults}>
+                    Retry Save
+                  </button>
+                  <button className="secondary-button" onClick={skipSavingResults}>
+                    Skip Saving
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           
           <button className="play-again-btn" onClick={resetGame}>

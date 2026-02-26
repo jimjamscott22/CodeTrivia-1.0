@@ -2,6 +2,62 @@ import { useState, useEffect } from 'react';
 import { getDetailedStats, getPerformanceSummary } from './performanceService';
 import './Stats.css';
 
+function RecentTrendChart({ sessions }) {
+  if (!sessions || sessions.length === 0) return null;
+
+  const chartWidth = 640;
+  const chartHeight = 220;
+  const padding = 24;
+  const timeline = [...sessions].reverse();
+  const maxX = Math.max(timeline.length - 1, 1);
+
+  const points = timeline.map((session, index) => {
+    const x = padding + (index / maxX) * (chartWidth - padding * 2);
+    const y = chartHeight - padding - ((Number(session.percentage) || 0) / 100) * (chartHeight - padding * 2);
+    return {
+      ...session,
+      x,
+      y
+    };
+  });
+
+  const path = points
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
+    .join(' ');
+
+  return (
+    <div className="trend-chart">
+      <div className="trend-chart-header">
+        <span>Recent Accuracy Trend</span>
+        <span className="trend-chart-caption">Oldest → Newest</span>
+      </div>
+
+      <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img" aria-label="Line chart of recent quiz accuracy">
+        {[0, 25, 50, 75, 100].map((value) => {
+          const y = chartHeight - padding - (value / 100) * (chartHeight - padding * 2);
+          return (
+            <g key={value}>
+              <line x1={padding} y1={y} x2={chartWidth - padding} y2={y} className="chart-grid-line" />
+              <text x={6} y={y + 4} className="chart-axis-label">{value}%</text>
+            </g>
+          );
+        })}
+
+        <path d={path} className="chart-line" />
+
+        {points.map((point, index) => (
+          <g key={`${point.id}-${index}`}>
+            <circle cx={point.x} cy={point.y} r="4" className="chart-point" />
+            <text x={point.x} y={chartHeight - 6} textAnchor="middle" className="chart-axis-label">
+              {index + 1}
+            </text>
+          </g>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
 function Stats({ onClose }) {
   const [stats, setStats] = useState(null);
   const [summary, setSummary] = useState([]);
@@ -24,7 +80,7 @@ function Stats({ onClose }) {
       setSummary(summaryData);
     } catch (err) {
       console.error('Error loading stats:', err);
-      setError('Failed to load statistics. Make sure the backend server is running.');
+      setError(`Failed to load statistics. ${err.message || 'Make sure the backend server is running.'}`);
     } finally {
       setLoading(false);
     }
@@ -110,6 +166,14 @@ function Stats({ onClose }) {
               </div>
             </div>
           </div>
+
+          {/* Trend Graph */}
+          {recentSessions && recentSessions.length > 0 && (
+            <div className="stats-section">
+              <h3>📈 Performance Trend</h3>
+              <RecentTrendChart sessions={recentSessions} />
+            </div>
+          )}
 
           {/* Weak Areas */}
           {weakAreas.length > 0 && (

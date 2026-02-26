@@ -21,7 +21,16 @@ export async function saveQuizSession(sessionData) {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to save session: ${response.statusText}`);
+      let errorMessage = `Failed to save session: ${response.statusText}`;
+      try {
+        const errorBody = await response.json();
+        if (errorBody?.error) {
+          errorMessage = errorBody.error;
+        }
+      } catch {
+        // Ignore JSON parse errors and fall back to status text
+      }
+      throw new Error(errorMessage);
     }
 
     const result = await response.json();
@@ -37,38 +46,46 @@ export async function saveQuizSession(sessionData) {
  * Get overall performance summary
  */
 export async function getPerformanceSummary() {
-  try {
-    const response = await fetch(`${API_BASE_URL}/performance/summary/${DEFAULT_USER_ID}`);
+  const response = await fetch(`${API_BASE_URL}/performance/summary/${DEFAULT_USER_ID}`);
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch summary: ${response.statusText}`);
+  if (!response.ok) {
+    let errorMessage = `Failed to fetch summary: ${response.statusText}`;
+    try {
+      const errorBody = await response.json();
+      if (errorBody?.error) {
+        errorMessage = errorBody.error;
+      }
+    } catch {
+      // Ignore JSON parse errors and fall back to status text
     }
-
-    const result = await response.json();
-    return result.data || [];
-  } catch (error) {
-    console.error('Error fetching performance summary:', error);
-    return [];
+    throw new Error(errorMessage);
   }
+
+  const result = await response.json();
+  return result.data || [];
 }
 
 /**
  * Get detailed statistics
  */
 export async function getDetailedStats() {
-  try {
-    const response = await fetch(`${API_BASE_URL}/performance/stats/${DEFAULT_USER_ID}`);
+  const response = await fetch(`${API_BASE_URL}/performance/stats/${DEFAULT_USER_ID}`);
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch stats: ${response.statusText}`);
+  if (!response.ok) {
+    let errorMessage = `Failed to fetch stats: ${response.statusText}`;
+    try {
+      const errorBody = await response.json();
+      if (errorBody?.error) {
+        errorMessage = errorBody.error;
+      }
+    } catch {
+      // Ignore JSON parse errors and fall back to status text
     }
-
-    const result = await response.json();
-    return result.data || null;
-  } catch (error) {
-    console.error('Error fetching detailed stats:', error);
-    return null;
+    throw new Error(errorMessage);
   }
+
+  const result = await response.json();
+  return result.data || null;
 }
 
 /**
