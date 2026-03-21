@@ -284,6 +284,125 @@
   transform: scale(1.05);
 }
 
+/* Progress Insights */
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.insight-card {
+  background: rgba(0, 255, 0, 0.05);
+  border: 1px solid var(--primary-green);
+  border-radius: 8px;
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.insight-card.improving {
+  background: rgba(0, 255, 100, 0.08);
+  border-color: #00ff88;
+}
+
+.insight-card.declining {
+  background: rgba(255, 100, 100, 0.08);
+  border-color: #ff6464;
+}
+
+.insight-card.steady {
+  background: rgba(180, 180, 255, 0.08);
+  border-color: #aab4ff;
+}
+
+.insight-icon {
+  font-size: 1.75rem;
+  margin-bottom: 0.4rem;
+}
+
+.insight-label {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-bottom: 0.35rem;
+}
+
+.insight-value {
+  font-size: 1.6rem;
+  font-weight: bold;
+  color: var(--primary-green);
+  margin-bottom: 0.35rem;
+}
+
+.insight-card.declining .insight-value {
+  color: #ff6464;
+}
+
+.insight-card.steady .insight-value {
+  color: #aab4ff;
+}
+
+.insight-detail {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* By Difficulty */
+.difficulty-breakdown {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.difficulty-stat-card {
+  border-radius: 8px;
+  padding: 1.25rem;
+  text-align: center;
+  border: 1px solid var(--primary-green);
+  background: rgba(0, 255, 0, 0.05);
+}
+
+.difficulty-stat-card.difficulty-easy {
+  border-color: #00ff88;
+  background: rgba(0, 255, 136, 0.06);
+}
+
+.difficulty-stat-card.difficulty-medium {
+  border-color: #ffd700;
+  background: rgba(255, 215, 0, 0.06);
+}
+
+.difficulty-stat-card.difficulty-hard {
+  border-color: #ff6464;
+  background: rgba(255, 100, 100, 0.06);
+}
+
+.difficulty-stat-label {
+  font-size: 0.85rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+  margin-bottom: 0.4rem;
+}
+
+.difficulty-stat-accuracy {
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--primary-green);
+  margin-bottom: 0.4rem;
+}
+
+.difficulty-stat-card.difficulty-medium .difficulty-stat-accuracy {
+  color: #ffd700;
+}
+
+.difficulty-stat-card.difficulty-hard .difficulty-stat-accuracy {
+  color: #ff6464;
+}
+
+.difficulty-stat-detail {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
 @media (max-width: 640px) {
   .trend-chart-header {
     flex-direction: column;
@@ -303,5 +422,13 @@
 
   .session-date {
     text-align: left;
+  }
+
+  .insights-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .difficulty-breakdown {
+    grid-template-columns: 1fr;
   }
 }

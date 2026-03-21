@@ -473,6 +473,13 @@ function App() {
           <button className="play-again-btn" onClick={resetGame}>
             🎮 Play Again
           </button>
+          {saveDecision !== 'pending' && saveDecision !== 'saving' && (
+            <div style={{ marginTop: '1rem' }}>
+              <button className="secondary-button" onClick={() => setShowStats(true)}>
+                📊 View My Progress
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );

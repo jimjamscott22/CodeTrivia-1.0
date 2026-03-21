@@ -58,6 +58,37 @@ function RecentTrendChart({ sessions }) {
   );
 }
 
+function computeProgressInsights(recentSessions) {
+  if (!recentSessions || recentSessions.length < 2) return null;
+
+  // Sessions come in DESC order (newest first); reverse for oldest→newest
+  const ordered = [...recentSessions].reverse();
+
+  const bestSession = ordered.reduce((best, s) =>
+    Number(s.percentage) > Number(best.percentage) ? s : best
+  , ordered[0]);
+
+  let trend = null;
+  if (ordered.length >= 4) {
+    const midpoint = Math.floor(ordered.length / 2);
+    const firstHalf = ordered.slice(0, midpoint);
+    const secondHalf = ordered.slice(midpoint);
+    const firstAvg =
+      firstHalf.reduce((sum, s) => sum + Number(s.percentage), 0) / firstHalf.length;
+    const secondAvg =
+      secondHalf.reduce((sum, s) => sum + Number(s.percentage), 0) / secondHalf.length;
+    const diff = secondAvg - firstAvg;
+    trend = {
+      direction: diff > 5 ? 'improving' : diff < -5 ? 'declining' : 'steady',
+      change: Math.abs(diff).toFixed(1),
+      recentAvg: secondAvg.toFixed(1),
+      earlierAvg: firstAvg.toFixed(1),
+    };
+  }
+
+  return { bestSession, trend };
+}
+
 function Stats({ onClose }) {
   const [stats, setStats] = useState(null);
   const [summary, setSummary] = useState([]);
@@ -122,7 +153,7 @@ function Stats({ onClose }) {
     );
   }
 
-  const { overall, byCategory, recentSessions } = stats;
+  const { overall, byCategory, byDifficulty, recentSessions } = stats;
 
   // Find weak and strong areas
   const weakAreas = summary
@@ -134,6 +165,8 @@ function Stats({ onClose }) {
     .filter(s => s.total_questions >= 5 && s.accuracy_percentage >= 70)
     .sort((a, b) => b.accuracy_percentage - a.accuracy_percentage)
     .slice(0, 3);
+
+  const insights = computeProgressInsights(recentSessions);
 
   return (
     <div className="stats-overlay">
@@ -172,6 +205,50 @@ function Stats({ onClose }) {
             <div className="stats-section">
               <h3>📈 Performance Trend</h3>
               <RecentTrendChart sessions={recentSessions} />
+            </div>
+          )}
+
+          {/* Progress Insights */}
+          {insights && (
+            <div className="stats-section">
+              <h3>💡 Progress Insights</h3>
+              <div className="insights-grid">
+                {insights.trend && (
+                  <div className={`insight-card ${insights.trend.direction}`}>
+                    <div className="insight-icon">
+                      {insights.trend.direction === 'improving' ? '📈' : insights.trend.direction === 'declining' ? '📉' : '➡️'}
+                    </div>
+                    <div className="insight-label">Trend</div>
+                    <div className="insight-value">
+                      {insights.trend.direction === 'improving'
+                        ? `+${insights.trend.change}%`
+                        : insights.trend.direction === 'declining'
+                        ? `-${insights.trend.change}%`
+                        : 'Steady'}
+                    </div>
+                    <div className="insight-detail">
+                      Recent avg: {insights.trend.recentAvg}% &middot; Earlier avg: {insights.trend.earlierAvg}%
+                    </div>
+                  </div>
+                )}
+                <div className="insight-card">
+                  <div className="insight-icon">🏆</div>
+                  <div className="insight-label">Best Session</div>
+                  <div className="insight-value">{insights.bestSession.percentage}%</div>
+                  <div className="insight-detail">
+                    {insights.bestSession.score}/{insights.bestSession.total_questions} on{' '}
+                    {new Date(insights.bestSession.completed_at).toLocaleDateString()}
+                  </div>
+                </div>
+                <div className="insight-card">
+                  <div className="insight-icon">🎯</div>
+                  <div className="insight-label">Overall Average</div>
+                  <div className="insight-value">{overall.avg_accuracy}%</div>
+                  <div className="insight-detail">
+                    Across {overall.total_sessions} session{overall.total_sessions !== 1 ? 's' : ''}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -230,6 +307,26 @@ function Stats({ onClose }) {
                       ></div>
                     </div>
                     <div className="category-accuracy">{cat.accuracy}%</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Difficulty Breakdown */}
+          {byDifficulty && byDifficulty.length > 0 && (
+            <div className="stats-section">
+              <h3>By Difficulty</h3>
+              <div className="difficulty-breakdown">
+                {byDifficulty.map((d, idx) => (
+                  <div key={idx} className={`difficulty-stat-card difficulty-${d.difficulty}`}
+                    aria-label={`${d.difficulty} difficulty: ${d.avg_accuracy}% average accuracy`}>
+                    <div className="difficulty-stat-label">{d.difficulty.toUpperCase()}</div>
+                    <div className="difficulty-stat-accuracy">{d.avg_accuracy}%</div>
+                    <div className="difficulty-stat-detail">
+                      {d.sessions_count} session{d.sessions_count !== 1 ? 's' : ''} &middot;{' '}
+                      {d.total_correct}/{d.total_questions} correct
+                    </div>
                   </div>
                 ))}
               </div>
