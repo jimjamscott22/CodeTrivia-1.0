@@ -622,6 +622,16 @@ function normalizeQuestion(rawQuestion, categories) {
   };
 }
 
+const PROGRAMMING_CATEGORY_CONTEXT = {
+  javascript: 'JavaScript the programming language (syntax, runtime behavior, browser/node APIs, tooling), not the brand name in unrelated contexts.',
+  python: 'Python the programming language and ecosystem (syntax, standard library, packaging, frameworks), never snakes, wildlife, or biology.',
+  java: 'Java the programming language and JVM ecosystem (JDK, collections, OOP, concurrency), never coffee, islands, or travel trivia.',
+  cpp: 'C++ programming (language features, STL, memory management, compilation), not general hardware trivia unless directly tied to C++.',
+  sql: 'SQL used for databases (queries, joins, normalization, transactions, indexing), not unrelated business trivia.',
+  algorithms: 'Computer science algorithms and data structures (complexity, sorting/searching, graph/tree/dp concepts).',
+  webdev: 'Web development engineering (HTML/CSS/JS, HTTP, APIs, frontend/backend architecture, tooling).'
+};
+
 async function generateMockQuestions(categories, difficulty, count) {
   // Simulate API call delay
   await new Promise(resolve => setTimeout(resolve, 1500));
@@ -678,7 +688,19 @@ export async function generateQuestions(categories, difficulty, count, provider 
     }
   }
 
-  const prompt = `Generate ${count} multiple-choice trivia questions about ${categories.join(', ')} at ${difficulty} difficulty level.${personalizationContext}
+  const categoryContext = categories
+    .map(category => `- ${category}: ${PROGRAMMING_CATEGORY_CONTEXT[category] || 'Treat this as a software engineering topic only.'}`)
+    .join('\n');
+
+  const prompt = `Generate ${count} multiple-choice trivia questions about ${categories.join(', ')} at ${difficulty} difficulty level.
+
+Domain requirement (must follow):
+- Every question must be explicitly about programming, software engineering, or computer science.
+- Interpret category names as coding topics only, even if the word has non-programming meanings.
+- Do NOT generate questions about animals, geography, food, pop culture, or other non-programming domains.
+
+Category interpretation guide:
+${categoryContext}${personalizationContext}
 
 IMPORTANT: Return ONLY a valid JSON array with no extra text before or after. No markdown code blocks, no explanations.
 
@@ -709,7 +731,7 @@ Do NOT include letter prefixes like "A)", "B)" in the answers. Return only plain
       body: JSON.stringify({
         model: modelName,
         messages: [
-          { role: "system", content: "You are a helpful assistant that generates trivia questions in strictly valid JSON format." },
+          { role: "system", content: "You are a programming trivia generator. Produce strictly valid JSON only. Never include non-programming trivia, even when category names are ambiguous." },
           { role: "user", content: prompt }
         ],
         stream: false,
