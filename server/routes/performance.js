@@ -70,11 +70,26 @@ router.get('/stats/:userId', async (req, res) => {
       LIMIT 10
     `, [userId]);
 
+    // Performance breakdown by difficulty
+    const [difficultyStats] = await db.query(`
+      SELECT
+        difficulty,
+        COUNT(*) as sessions_count,
+        SUM(score) as total_correct,
+        SUM(total_questions) as total_questions,
+        ROUND(AVG(score / NULLIF(total_questions, 0) * 100), 2) as avg_accuracy
+      FROM quiz_sessions
+      WHERE user_id = ?
+      GROUP BY difficulty
+      ORDER BY FIELD(difficulty, 'easy', 'medium', 'hard')
+    `, [userId]);
+
     res.json({
       success: true,
       data: {
         overall: overallStats[0],
         byCategory: categoryStats,
+        byDifficulty: difficultyStats,
         recentSessions: recentSessions
       }
     });
