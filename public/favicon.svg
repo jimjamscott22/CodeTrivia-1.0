@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" rx="18" fill="#1e1b4b"/>
+  <!-- Code brackets -->
+  <text x="10" y="62" font-family="monospace" font-size="40" font-weight="bold" fill="#818cf8">&lt;</text>
+  <text x="68" y="62" font-family="monospace" font-size="40" font-weight="bold" fill="#818cf8">&gt;</text>
+  <!-- Question mark -->
+  <text x="36" y="68" font-family="monospace" font-size="44" font-weight="bold" fill="#e879f9">?</text>
+  <!-- Dots at top for "trivia" feel -->
+  <circle cx="30" cy="22" r="4" fill="#c4b5fd" opacity="0.7"/>
+  <circle cx="50" cy="18" r="4" fill="#e879f9" opacity="0.7"/>
+  <circle cx="70" cy="22" r="4" fill="#c4b5fd" opacity="0.7"/>
+</svg>
